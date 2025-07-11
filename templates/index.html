@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Weather App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+    <style>
+        body {
+            background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
+            min-height: 100vh;
+        }
+
+        .weather-card {
+            max-width: 400px;
+            margin: 2rem auto;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .form-section {
+            background: #fff;
+            border-radius: 12px;
+            padding: 2rem 2rem 1rem 2rem;
+            max-width: 500px;
+            margin: 2rem auto 1rem auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .btn-find {
+            margin-top: 1rem;
+            width: 100%;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: background 0.2s;
+        }
+
+        .btn-find:hover {
+            background: #0dcaf0;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="mt-5 text-center fw-bold">Weather App</h1>
+        <form action="/" method="post" class="form-section">
+            <div class="row g-3">
+                <div class="col-12">
+                    <input type="text" name="cityName" id="cityName" placeholder="City (e.g. Paris)"
+                        class="form-control form-control-lg" required
+                        value="{{ request.form.cityName if request.method=='POST' else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <input type="text" name="stateName" id="stateName" placeholder="State/Province (optional)"
+                        class="form-control form-control-lg"
+                        value="{{ request.form.stateName if request.method=='POST' else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <input type="text" name="countryName" id="countryName" placeholder="Country (e.g. France)"
+                        class="form-control form-control-lg" required
+                        value="{{ request.form.countryName if request.method=='POST' else '' }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-info btn-find">Find Weather</button>
+                </div>
+            </div>
+        </form>
+
+        {% if data %}
+        <div class="card weather-card text-center">
+            <div class="card-body">
+                <h3 class="card-title">Weather in {{ request.form.cityName|default('') }}, {{
+                    request.form.countryName|default('') }}</h3>
+                <img src="http://openweathermap.org/img/wn/{{ data.icon }}@2x.png" alt="Weather Icon" class="mb-2">
+                <p class="card-text mb-1"><strong>Condition:</strong> {{ data.main }}</p>
+                <p class="card-text mb-1"><strong>Description:</strong> {{ data.description }}</p>
+                <p class="card-text"><strong>Temperature:</strong> {{ data.temperature }}°C</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
+        crossorigin="anonymous"></script>
+    <script>
+        function setupAutocomplete(inputId) {
+            const input = document.getElementById(inputId);
+            const cityInput = document.getElementById('cityName');
+            const stateInput = document.getElementById('stateName');
+            const countryInput = document.getElementById('countryName');
+            let dropdown;
+
+            input.addEventListener('input', function () {
+                const query = input.value.trim();
+                if (query.length < 2) {
+                    if (dropdown) dropdown.remove();
+                    return;
+                }
+                fetch(`/autocomplete?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(suggestions => {
+                        if (dropdown) dropdown.remove();
+                        dropdown = document.createElement('div');
+                        dropdown.className = 'autocomplete-dropdown list-group position-absolute w-100';
+                        dropdown.style.zIndex = 1000;
+                        suggestions.forEach(item => {
+                            const option = document.createElement('button');
+                            option.type = 'button';
+                            option.className = 'list-group-item list-group-item-action';
+                            option.textContent = `${item.city}${item.state ? ', ' + item.state : ''}, ${item.country}`;
+                            option.onclick = function () {
+                                cityInput.value = item.city;
+                                stateInput.value = item.state;
+                                countryInput.value = item.country;
+                                dropdown.remove();
+                            };
+                            dropdown.appendChild(option);
+                        });
+                        // Position dropdown
+                        input.parentNode.appendChild(dropdown);
+                    });
+            });
+            // Remove dropdown on blur
+            input.addEventListener('blur', function () {
+                setTimeout(() => { if (dropdown) dropdown.remove(); }, 150);
+            });
+        }
+        // Setup autocomplete for all three fields
+        setupAutocomplete('cityName');
+        setupAutocomplete('stateName');
+        setupAutocomplete('countryName');
+    </script>
+</body>
+
+</html>
